@@ -3,6 +3,8 @@ import 'package:covoit_app/service/supabase_client.dart';
 import 'package:covoit_app/widgets/primary_button.dart';
 import 'package:covoit_app/widgets/loading_indicator.dart';
 
+import 'package:covoit_app/service/session_store.dart'; // <-- important
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -22,13 +24,31 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _onContinue() async {
+    final rawEmail = emailController.text.trim();
+
+    if (rawEmail.isEmpty) {
+      setState(() {
+        error = 'Merci de saisir un email.';
+      });
+      return;
+    }
+
+    // On normalise en minuscules
+    final email = rawEmail.toLowerCase();
+
     setState(() {
       loading = true;
       error = null;
     });
 
     try {
-      // 1. Connexion anonyme → pas de mot de passe, pas de confirmation email
+      // On sauvegarde tout de suite l'email utilisé pour cette session
+      currentLoginEmail = email;
+
+      // On se déconnecte au cas où il reste une ancienne session
+      await supabase.auth.signOut();
+
+      // Connexion anonyme (pas de mot de passe, pas de confirmation)
       final authResponse = await supabase.auth.signInAnonymously();
       final user = authResponse.user;
 
@@ -36,16 +56,11 @@ class _LoginPageState extends State<LoginPage> {
         throw Exception('Impossible de créer une session utilisateur');
       }
 
-      // 2. Enregistrer l'email saisi dans la table profiles (pour les rôles, guards, etc.)
-      final email = emailController.text.trim();
-      if (email.isNotEmpty) {
-        await supabase.from('profiles').upsert({
-          'id': user.id,
-          'email': email,
-        });
-      }
+      // Si tu veux garder la table profiles pour d'autres cas, tu peux la remplir ici
+      // mais ce n'est plus nécessaire pour savoir si l'utilisateur est surveillant.
+      // await supabase.from('profiles').upsert({'id': user.id, 'email': email});
 
-      // L'AuthGate dans main.dart va détecter la session et rediriger vers HomePage.
+      // L'AuthGate va détecter la session et t'envoyer vers HomePage.
     } catch (e) {
       setState(() {
         error = e.toString();
@@ -74,6 +89,7 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             TextField(
               controller: emailController,
+              keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
                 labelText: 'Email (surveillant ou étudiant)',
               ),
