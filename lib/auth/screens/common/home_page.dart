@@ -78,7 +78,7 @@ class _HomePageState extends State<HomePage> {
     if (isGuard) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Covoiturage Campus → Elispace'),
+          title: const Text('Covoiturage Ovalies - Surveillant'),
           actions: [
             IconButton(
               onPressed: _logout,
@@ -86,16 +86,51 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(8),
+          color: const Color(0xFF0057A3),
+          child: const Text(
+            'Ovalies 2025 - Covoiturage officiel 🏉',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const Text(
+                  'Covoiturage Ovalies 🏉',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Du campus à Elispace, merci pour votre aide 👮‍♂️',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF6B7280),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 if (emailUsed != null)
                   Text(
-                    'Connecté en tant que surveillant : $emailUsed',
+                    'Connecté en tant que surveillant :\n$emailUsed',
                     textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF4B5563),
+                    ),
                   ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -122,13 +157,26 @@ class _HomePageState extends State<HomePage> {
     // 🚗 Utilisateur normal : Conducteur + Passager
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Covoiturage Campus → Elispace'),
+        title: const Text('Ovalink'),
         actions: [
           IconButton(
             onPressed: _logout,
             icon: const Icon(Icons.logout),
           ),
         ],
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(8),
+        color: const Color(0xFF0057A3),
+        child: const Text(
+          'Ovalies 2025 - Covoiturage officiel 🏉',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
       body: Center(
         child: Padding(
@@ -137,10 +185,23 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                'Qui êtes-vous ?',
-                style: TextStyle(fontSize: 20),
+                'Ovalink 🏉',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF111827),
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 4),
+              const Text(
+                'Du campus aux Ovalies, ensemble 💛',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF6B7280),
+                ),
+              ),
+              const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -155,7 +216,7 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -174,7 +235,10 @@ class _HomePageState extends State<HomePage> {
               if (emailUsed != null)
                 Text(
                   'Connecté avec : $emailUsed',
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6B7280),
+                  ),
                 ),
             ],
           ),
