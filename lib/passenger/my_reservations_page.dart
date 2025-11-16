@@ -36,9 +36,11 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
         error = e.toString();
       });
     } finally {
-      setState(() {
-        loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
     }
   }
 
@@ -58,17 +60,45 @@ class _MyReservationsPageState extends State<MyReservationsPage> {
             if (error != null)
               Text(error!, style: const TextStyle(color: Colors.red)),
             if (trips.isEmpty && error == null)
-              const Text('Aucune réservation pour le moment'),
+              const Text('Aucune réservation pour le moment.'),
             ...trips.map((trip) {
               final dateString =
                   '${trip.heureDepart.day}/${trip.heureDepart.month} '
                   '${trip.heureDepart.hour.toString().padLeft(2, '0')}:'
                   '${trip.heureDepart.minute.toString().padLeft(2, '0')}';
+
+              final driverName = [
+                trip.driverPrenom ?? '',
+                trip.driverNom ?? '',
+              ].join(' ').trim();
+
               return Card(
-                child: ListTile(
-                  title: Text('Trajet du $dateString'),
-                  subtitle:
-                      Text('Places totales : ${trip.nbPlaces}'),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Trajet du $dateString',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Infos conducteur :',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      if (driverName.isNotEmpty)
+                        Text('Nom : $driverName'),
+                      if ((trip.driverTelephone ?? '').isNotEmpty)
+                        Text('Téléphone : ${trip.driverTelephone}'),
+                      if ((trip.driverEmail ?? '').isNotEmpty)
+                        Text('Email : ${trip.driverEmail}'),
+                    ],
+                  ),
                 ),
               );
             }),

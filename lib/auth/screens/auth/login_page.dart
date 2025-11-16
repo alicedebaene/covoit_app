@@ -13,19 +13,26 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
+  final prenomController = TextEditingController();
+  final nomController = TextEditingController();
+  final telephoneController = TextEditingController();
+
   bool loading = false;
   String? error;
 
   @override
   void dispose() {
     emailController.dispose();
+    prenomController.dispose();
+    nomController.dispose();
+    telephoneController.dispose();
     super.dispose();
   }
 
   Future<void> _anonymousSignInWithEmail(String email) async {
     final normalizedEmail = email.toLowerCase();
 
-    // mémoriser pour la Home (surveillant ou non)
+    // mémoriser pour le reste de l'appli
     currentLoginEmail = normalizedEmail;
 
     // vider ancienne session
@@ -66,7 +73,7 @@ class _LoginPageState extends State<LoginPage> {
       final guardsRes = await supabase
           .from('guard_emails')
           .select('email')
-          .ilike('email', email); // insensible à la casse
+          .ilike('email', email);
 
       final existsInAppUsers = (appUsersRes as List).isNotEmpty;
       final existsInGuards = (guardsRes as List).isNotEmpty;
@@ -94,12 +101,17 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _onSignUp() async {
     final rawEmail = emailController.text.trim();
-    if (rawEmail.isEmpty) {
+    final prenom = prenomController.text.trim();
+    final nom = nomController.text.trim();
+    final telephone = telephoneController.text.trim();
+
+    if (rawEmail.isEmpty || prenom.isEmpty || nom.isEmpty || telephone.isEmpty) {
       setState(() {
-        error = 'Merci de saisir un email pour créer un compte.';
+        error = 'Merci de remplir email, prénom, nom et téléphone pour créer un compte.';
       });
       return;
     }
+
     final email = rawEmail.toLowerCase();
 
     setState(() {
@@ -111,6 +123,9 @@ class _LoginPageState extends State<LoginPage> {
       // 1) ajouter dans app_users
       await supabase.from('app_users').insert({
         'email': email,
+        'prenom': prenom,
+        'nom': nom,
+        'telephone': telephone,
       });
 
       // 2) connexion anonyme
@@ -120,12 +135,7 @@ class _LoginPageState extends State<LoginPage> {
       if (msg.contains('duplicate key value')) {
         setState(() {
           error =
-              'Un compte existe déjà avec cet email.\nUtilise "Se connecter".';
-        });
-      } else if (msg.contains('row-level security')) {
-        setState(() {
-          error =
-              'Erreur de sécurité Supabase (RLS) sur app_users.\nVérifie bien la policy "app_users_all".';
+              'Un compte existe déjà avec cet email.\nUtilise plutôt "Se connecter".';
         });
       } else {
         setState(() {
@@ -150,7 +160,7 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Connexion')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -161,6 +171,28 @@ class _LoginPageState extends State<LoginPage> {
                 labelText: 'Email',
               ),
             ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: prenomController,
+              decoration: const InputDecoration(
+                labelText: 'Prénom (obligatoire pour créer un compte)',
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: nomController,
+              decoration: const InputDecoration(
+                labelText: 'Nom (obligatoire pour créer un compte)',
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: telephoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Téléphone (obligatoire pour créer un compte)',
+              ),
+            ),
             const SizedBox(height: 16),
             if (error != null) ...[
               Text(
@@ -169,25 +201,19 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 8),
             ],
-
-            // 🔵 Bouton SE CONNECTER → _onLogin
             PrimaryButton(
               text: 'Se connecter',
               onPressed: _onLogin,
             ),
-
-            const SizedBox(height: 12),
-
-            // 🟢 Bouton CRÉER UN COMPTE → _onSignUp
+            const SizedBox(height: 8),
             PrimaryButton(
               text: 'Créer un compte',
               onPressed: _onSignUp,
             ),
-
             const SizedBox(height: 16),
             const Text(
               'Aucun mot de passe, aucune confirmation email.\n'
-              'Ton email sert uniquement à te reconnaître et à savoir si tu es surveillant (table guard_emails) ou non.',
+              'Ton email + tes infos servent à te reconnaître et à donner tes coordonnées au conducteur quand tu réserves.',
               textAlign: TextAlign.center,
             ),
           ],

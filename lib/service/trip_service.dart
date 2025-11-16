@@ -1,18 +1,18 @@
-// lib/service/trip_service.dart
 import 'package:uuid/uuid.dart';
 
 import '../models/trip.dart';
-import '../models/parking.dart';
 import 'parking_service.dart';
 import 'supabase_client.dart';
+import 'package:covoit_app/service/session_store.dart'; // pour currentLoginEmail
 
 class TripService {
   final _uuid = const Uuid();
 
-Future<Trip> createTrip(
-  DateTime heureDepart,
-  int nbPlaces,
-) async {
+  /// Création d'un trajet (conducteur)
+  Future<Trip> createTrip({
+    required DateTime heureDepart,
+    required int nbPlaces,
+  }) async {
     final user = supabase.auth.currentUser;
     if (user == null) throw Exception('Utilisateur non connecté');
 
@@ -21,27 +21,55 @@ Future<Trip> createTrip(
 
     final qrToken = _uuid.v4();
 
+    // Infos conducteur depuis app_users via l'email
+    String? email = currentLoginEmail?.toLowerCase();
+    String? prenom;
+    String? nom;
+    String? telephone;
+
+    if (email != null && email.isNotEmpty) {
+      final userInfo = await supabase
+          .from('app_users')
+          .select('email, prenom, nom, telephone')
+          .eq('email', email)
+          .maybeSingle();
+
+      if (userInfo != null) {
+        email = (userInfo['email'] as String?) ?? email;
+        prenom = userInfo['prenom'] as String?;
+        nom = userInfo['nom'] as String?;
+        telephone = userInfo['telephone'] as String?;
+      }
+    }
+
     final response = await supabase.from('trajets').insert({
-      'conducteur_id': user.id,
+      'conducteur_id': user.id, // on garde pour l'historique, mais on ne s'en sert plus
       'parking_id': parking.id,
       'heure_depart': heureDepart.toUtc().toIso8601String(),
       'statut': 'reserve',
       'qr_token': qrToken,
       'nb_places': nbPlaces,
+      'driver_email': email,
+      'driver_prenom': prenom,
+      'driver_nom': nom,
+      'driver_telephone': telephone,
     }).select().single();
 
     return Trip.fromMap(response as Map<String, dynamic>);
   }
 
+  /// 🔎 Tous les trajets créés par l'utilisateur actuel (via email)
   Future<List<Trip>> getMyTrips() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) throw Exception('Utilisateur non connecté');
+    final email = currentLoginEmail?.toLowerCase();
+    if (email == null || email.isEmpty) {
+      throw Exception('Email utilisateur inconnu (reconnecte-toi).');
+    }
 
     final response = await supabase
         .from('trajets')
         .select()
-        .eq('conducteur_id', user.id)
-        .order('created_at', ascending: false);
+        .eq('driver_email', email)
+        .order('heure_depart', ascending: false);
 
     final list = (response as List)
         .map((e) => Trip.fromMap(e as Map<String, dynamic>))
@@ -50,6 +78,7 @@ Future<Trip> createTrip(
     return list;
   }
 
+  /// Scan QR pour surveillant (inchangé)
   Future<Map<String, dynamic>> scanQr(String token) async {
     final response = await supabase
         .from('trajets')

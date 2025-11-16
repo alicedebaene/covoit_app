@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:covoit_app/service/trip_service.dart';
 import 'package:covoit_app/auth/screens/common/driver/trip_qr_page.dart';
 import 'package:covoit_app/widgets/loading_indicator.dart';
@@ -27,6 +26,7 @@ class _CreateTripPageState extends State<CreateTripPage> {
 
   Future<void> _pickDateTime() async {
     final now = DateTime.now();
+
     final date = await showDatePicker(
       context: context,
       firstDate: now,
@@ -55,18 +55,16 @@ class _CreateTripPageState extends State<CreateTripPage> {
   }
 
   Future<void> _createTrip() async {
+    // Vérif date
     if (selectedDateTime == null) {
-      setState(() {
-        error = 'Choisis une date/heure';
-      });
+      setState(() => error = 'Choisis une date/heure');
       return;
     }
 
+    // Vérif nb places
     final parsed = int.tryParse(nbPlacesController.text);
     if (parsed == null || parsed <= 0) {
-      setState(() {
-        error = 'Nombre de places invalide';
-      });
+      setState(() => error = 'Nombre de places invalide');
       return;
     }
     nbPlaces = parsed;
@@ -77,27 +75,24 @@ class _CreateTripPageState extends State<CreateTripPage> {
     });
 
     try {
-      // 🔴 ICI : plus de paramètres nommés
+      // 🟢 Appel avec paramètres NOMMÉS
       final trip = await tripService.createTrip(
-        selectedDateTime!,
-        nbPlaces,
+        heureDepart: selectedDateTime!,
+        nbPlaces: nbPlaces,
       );
 
       if (!mounted) return;
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => TripQrPage(trip: trip),
         ),
       );
     } catch (e) {
-      setState(() {
-        error = e.toString();
-      });
+      setState(() => error = e.toString());
     } finally {
       if (mounted) {
-        setState(() {
-          loading = false;
-        });
+        setState(() => loading = false);
       }
     }
   }
@@ -111,8 +106,8 @@ class _CreateTripPageState extends State<CreateTripPage> {
     final dtText = selectedDateTime == null
         ? 'Aucune date/heure choisie'
         : '${selectedDateTime!.day}/${selectedDateTime!.month} '
-          '${selectedDateTime!.hour.toString().padLeft(2, '0')}:'
-          '${selectedDateTime!.minute.toString().padLeft(2, '0')}';
+          '${selectedDateTime!.hour.toString().padLeft(2, "0")}:'
+          '${selectedDateTime!.minute.toString().padLeft(2, "0")}';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Créer un trajet')),

@@ -9,6 +9,12 @@ class Trip {
   final String qrToken;
   final int nbPlaces;
 
+  // Infos conducteur (optionnelles)
+  final String? driverEmail;
+  final String? driverPrenom;
+  final String? driverNom;
+  final String? driverTelephone;
+
   Trip({
     required this.id,
     required this.conducteurId,
@@ -17,6 +23,10 @@ class Trip {
     required this.statut,
     required this.qrToken,
     required this.nbPlaces,
+    this.driverEmail,
+    this.driverPrenom,
+    this.driverNom,
+    this.driverTelephone,
   });
 
   factory Trip.fromMap(Map<String, dynamic> map) {
@@ -28,6 +38,10 @@ class Trip {
       statut: map['statut'] as String,
       qrToken: map['qr_token'] as String,
       nbPlaces: map['nb_places'] as int? ?? 1,
+      driverEmail: map['driver_email'] as String?,
+      driverPrenom: map['driver_prenom'] as String?,
+      driverNom: map['driver_nom'] as String?,
+      driverTelephone: map['driver_telephone'] as String?,
     );
   }
 }

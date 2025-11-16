@@ -37,9 +37,11 @@ class _AvailableTripsPageState extends State<AvailableTripsPage> {
         error = e.toString();
       });
     } finally {
-      setState(() {
-        loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
     }
   }
 
@@ -73,6 +75,8 @@ class _AvailableTripsPageState extends State<AvailableTripsPage> {
       return const Scaffold(body: LoadingIndicator());
     }
 
+    final user = supabase.auth.currentUser;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Trajets disponibles')),
       body: RefreshIndicator(
@@ -89,8 +93,10 @@ class _AvailableTripsPageState extends State<AvailableTripsPage> {
                   final reserv = snapshot.data ?? 0;
                   final restantes = trip.nbPlaces - reserv;
 
-                  // Si plus de places → on n'affiche pas ce trajet
-                  if (restantes <= 0) {
+                  // 🔹 Sécurité visuelle : on masque quand même les trajets dont je suis conducteur
+                  final bool isMyTrip =
+                      user != null && trip.conducteurId == user.id;
+                  if (isMyTrip || restantes <= 0) {
                     return const SizedBox.shrink();
                   }
 
@@ -99,20 +105,40 @@ class _AvailableTripsPageState extends State<AvailableTripsPage> {
                       '${trip.heureDepart.hour.toString().padLeft(2, '0')}:'
                       '${trip.heureDepart.minute.toString().padLeft(2, '0')}';
 
-                  return Card(
-                    child: ListTile(
-                      title: Text('Trajet du $dateString'),
-                      subtitle: Text(
-                          'Places restantes : $restantes / ${trip.nbPlaces}'),
-                      trailing: ElevatedButton(
-                        onPressed: () => _reserve(trip),
-                        child: const Text('Réserver'),
-                      ),
-                    ),
-                  );
+return Card(
+  child: ListTile(
+    title: Text('Trajet du $dateString'),
+    subtitle: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Places restantes : $restantes / ${trip.nbPlaces}'),
+        const SizedBox(height: 4),
+        Text(
+          'Conducteur : '
+          '${trip.driverPrenom ?? ''} ${trip.driverNom ?? ''}'.trim(),
+        ),
+        if (trip.driverTelephone != null && trip.driverTelephone!.isNotEmpty)
+          Text('Téléphone conducteur : ${trip.driverTelephone}'),
+        if (trip.driverEmail != null && trip.driverEmail!.isNotEmpty)
+          Text('Email conducteur : ${trip.driverEmail}'),
+      ],
+    ),
+    trailing: ElevatedButton(
+      onPressed: () => _reserve(trip),
+      child: const Text('Réserver'),
+    ),
+  ),
+);
                 },
               ),
             ),
+            if (trips.isEmpty && error == null)
+              const Padding(
+                padding: EdgeInsets.only(top: 24.0),
+                child: Center(
+                  child: Text('Aucun trajet disponible pour le moment.'),
+                ),
+              ),
           ],
         ),
       ),

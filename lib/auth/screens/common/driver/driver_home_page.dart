@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'create_trip_page.dart';
-import 'my_trips_page.dart';
+import 'package:covoit_app/auth/screens/common/driver/create_trip_page.dart';
+import 'package:covoit_app/auth/screens/common/driver/my_trips_page.dart';
 
 class DriverHomePage extends StatelessWidget {
   const DriverHomePage({super.key});
@@ -12,6 +12,7 @@ class DriverHomePage extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(
               width: double.infinity,
@@ -26,7 +27,7 @@ class DriverHomePage extends StatelessWidget {
                 child: const Text('Créer un trajet'),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
