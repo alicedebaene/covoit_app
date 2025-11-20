@@ -11,7 +11,12 @@ class GuardTripsPage extends StatefulWidget {
 
 class _GuardTripsPageState extends State<GuardTripsPage> {
   bool loading = true;
+
+  /// Liste brute des trajets (table `trajets`)
   List<Map<String, dynamic>> trips = [];
+
+  /// email (en minuscule) -> infos conducteur (table `app_users`)
+  Map<String, Map<String, dynamic>> driversByEmail = {};
 
   @override
   void initState() {
@@ -21,24 +26,52 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
 
   Future<void> _loadTrips() async {
     try {
-      final data = await supabase
+      // 1️⃣ Récupérer tous les trajets
+      final tripData = await supabase
           .from('trajets')
-          .select(
-            '''
-            id,
-            heure_depart,
-            statut,
-            nb_places,
-            driver_email,
-            driver_prenom,
-            driver_nom,
-            driver_telephone
-            ''',
-          )
+          .select('id, heure_depart, statut, nb_places, driver_email')
           .order('heure_depart', ascending: false);
 
+      final tripsList = List<Map<String, dynamic>>.from(tripData as List);
+
+      // 2️⃣ Charger les conducteurs dans app_users
+      final Map<String, Map<String, dynamic>> drivers = {};
+
+      for (final t in tripsList) {
+        final emailRaw = (t['driver_email'] ?? '') as String;
+        final email = emailRaw.toLowerCase().trim();
+
+        if (email.isEmpty) continue;
+        if (drivers.containsKey(email)) continue; // déjà chargé
+
+        try {
+          final userData = await supabase
+              .from('app_users')
+              .select('''
+                email,
+                prenom,
+                nom,
+                telephone,
+                permis_url,
+                car_plate,
+                car_model,
+                car_color
+              ''')
+              .eq('email', email)
+              .maybeSingle(); // null si rien
+
+          if (userData != null) {
+            drivers[email] =
+                Map<String, dynamic>.from(userData as Map<String, dynamic>);
+          }
+        } catch (e) {
+          debugPrint('Erreur chargement app_users pour $email : $e');
+        }
+      }
+
       setState(() {
-        trips = List<Map<String, dynamic>>.from(data as List);
+        trips = tripsList;
+        driversByEmail = drivers;
         loading = false;
       });
     } catch (e) {
@@ -48,7 +81,7 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
   }
 
   Future<void> _showPassengersSheet(Map<String, dynamic> trip) async {
-    final tripId = trip['id']; // uuid ou string → on ne caste pas
+    final tripId = trip['id'];
 
     List<Map<String, dynamic>> passengers = [];
     String? errorMsg;
@@ -56,19 +89,16 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
     try {
       final data = await supabase
           .from('reservations')
-          .select(
-            '''
+          .select('''
             passenger_prenom,
             passenger_nom,
             passenger_email,
             passenger_telephone
-            ''',
-          )
+          ''')
           .eq('trajet_id', tripId);
 
       passengers = List<Map<String, dynamic>>.from(data as List);
     } catch (e) {
-      // Si RLS / colonne / autre erreur → on la garde pour l'afficher
       errorMsg = e.toString();
       debugPrint('Erreur chargement passagers (guard) : $e');
     }
@@ -77,9 +107,7 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
 
     showModalBottomSheet(
       context: context,
-      showDragHandle: true,
       builder: (context) {
-        // 1) Erreur Supabase
         if (errorMsg != null) {
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -102,7 +130,6 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
           );
         }
 
-        // 2) Aucun passager
         if (passengers.isEmpty) {
           return const SizedBox(
             height: 140,
@@ -112,7 +139,6 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
           );
         }
 
-        // 3) Liste des passagers
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -163,6 +189,35 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
     );
   }
 
+  void _showPermisFullScreen(String permisUrl) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          child: InteractiveViewer(
+            child: Container(
+              color: Colors.black,
+              child: Center(
+                child: Image.network(
+                  permisUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Impossible de charger la photo du permis',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -188,10 +243,17 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
           final statut = trip['statut'] as String? ?? 'inconnu';
           final nbPlaces = trip['nb_places'] ?? 0;
 
-          final driverPrenom = trip['driver_prenom'] ?? '';
-          final driverNom = trip['driver_nom'] ?? '';
-          final driverEmail = trip['driver_email'] ?? '';
-          final driverTel = trip['driver_telephone'] ?? '';
+          final driverEmailRaw = (trip['driver_email'] ?? '') as String;
+          final driverEmail = driverEmailRaw.toLowerCase();
+          final driver = driversByEmail[driverEmail];
+
+          final driverPrenom = driver?['prenom'] ?? '';
+          final driverNom = driver?['nom'] ?? '';
+          final driverTel = driver?['telephone'] ?? '';
+          final permisUrl = (driver?['permis_url'] ?? '').toString();
+          final carPlate = driver?['car_plate'] ?? '';
+          final carModel = driver?['car_model'] ?? '';
+          final carColor = driver?['car_color'] ?? '';
 
           return Card(
             margin: const EdgeInsets.only(bottom: 16),
@@ -201,7 +263,7 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Haut de la carte : conducteur + oeil
+                  // Haut : conducteur + bouton oeil
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -216,8 +278,10 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
                                 fontSize: 16,
                               ),
                             ),
-                            if (driverEmail.isNotEmpty) Text('📧 $driverEmail'),
-                            if (driverTel.isNotEmpty) Text('📞 $driverTel'),
+                            if (driverEmailRaw.isNotEmpty)
+                              Text('📧 $driverEmailRaw'),
+                            if (driverTel.toString().isNotEmpty)
+                              Text('📞 $driverTel'),
                           ],
                         ),
                       ),
@@ -229,6 +293,49 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
                     ],
                   ),
                   const SizedBox(height: 8),
+
+                  // 📸 Permis – vignette non croppée + tap pour plein écran
+                  if (permisUrl.isNotEmpty) ...[
+                    const Text(
+                      'Permis du conducteur :',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => _showPermisFullScreen(permisUrl),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container
+                          (
+                          height: 160,
+                          width: double.infinity,
+                          color: Colors.black12,
+                          alignment: Alignment.center,
+                          child: Image.network(
+                            permisUrl,
+                            fit: BoxFit.contain, // ➜ plus de zoom
+                            errorBuilder: (_, __, ___) => const Text(
+                              'Impossible de charger la photo du permis',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Infos voiture
+                  const Text(
+                    'Véhicule :',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  if (carPlate.toString().isNotEmpty)
+                    Text('🚘 Plaque : $carPlate'),
+                  if (carModel.toString().isNotEmpty)
+                    Text('📄 Modèle : $carModel'),
+                  if (carColor.toString().isNotEmpty)
+                    Text('🎨 Couleur : $carColor'),
+                  const SizedBox(height: 12),
 
                   // Infos trajet
                   Text('📅 Départ : $dateStr'),

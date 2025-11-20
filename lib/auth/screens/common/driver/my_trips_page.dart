@@ -17,6 +17,10 @@ class _MyTripsPageState extends State<MyTripsPage> {
   String? error;
   List<Trip> trips = [];
 
+  /// sens choisi par le conducteur sur cette page
+  /// "campus_to_cma" ou "cma_to_campus"
+  String selectedDirection = 'campus_to_cma';
+
   @override
   void initState() {
     super.initState();
@@ -59,17 +63,24 @@ class _MyTripsPageState extends State<MyTripsPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+           
+   
             if (error != null)
-              Text(error!, style: const TextStyle(color: Colors.red)),
+              Text(
+                error!,
+                style: const TextStyle(color: Colors.red),
+              ),
             if (trips.isEmpty && error == null)
               const Text('Tu n\'as encore créé aucun trajet.'),
+
             ...trips.map((trip) {
               final dateString =
                   '${trip.heureDepart.day}/${trip.heureDepart.month} '
-                  '${trip.heureDepart.hour.toString().padLeft(2, '0')}:'
-                  '${trip.heureDepart.minute.toString().padLeft(2, '0')}';
+                  '${trip.heureDepart.hour.toString().padLeft(2, '0')}'
+                  ':${trip.heureDepart.minute.toString().padLeft(2, '0')}';
 
               return Card(
+                margin: const EdgeInsets.only(bottom: 12),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -82,6 +93,8 @@ class _MyTripsPageState extends State<MyTripsPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 6),
+
                       const SizedBox(height: 8),
                       Row(
                         children: [

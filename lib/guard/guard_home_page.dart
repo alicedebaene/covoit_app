@@ -1,4 +1,5 @@
 import 'package:covoit_app/guard/guard_trips_page.dart';
+import 'package:covoit_app/guard/parking_status_page.dart';
 import 'package:flutter/material.dart';
 import 'scan_qr_page.dart';
 
@@ -36,7 +37,7 @@ class GuardHomePage extends StatelessWidget {
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                     builder: (_) => const GuardTripsPage(),
+                     builder: (_) => const ParkingStatusPage(),
 
                     ),
                   );
