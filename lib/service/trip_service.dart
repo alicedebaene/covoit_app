@@ -12,6 +12,8 @@ class TripService {
   Future<Trip> createTrip({
     required DateTime heureDepart,
     required int nbPlaces,
+    required String depart,   // <-- nouveau paramètre
+    required String arrivee,  // <-- nouveau paramètre
   }) async {
     final user = supabase.auth.currentUser;
     if (user == null) throw Exception('Utilisateur non connecté');
@@ -43,7 +45,7 @@ class TripService {
     }
 
     final response = await supabase.from('trajets').insert({
-      'conducteur_id': user.id, // on garde pour l'historique, mais on ne s'en sert plus
+      'conducteur_id': user.id, // on garde pour l'historique
       'parking_id': parking.id,
       'heure_depart': heureDepart.toUtc().toIso8601String(),
       'statut': 'reserve',
@@ -53,12 +55,16 @@ class TripService {
       'driver_prenom': prenom,
       'driver_nom': nom,
       'driver_telephone': telephone,
+
+      // 🔽 NOUVEAU : enregistrement du sens du trajet
+      'depart': depart,
+      'arrivee': arrivee,
     }).select().single();
 
     return Trip.fromMap(response as Map<String, dynamic>);
   }
 
-  /// 🔎 Tous les trajets créés par l'utilisateur actuel (via email)
+  /// Tous les trajets créés par l'utilisateur actuel (via email)
   Future<List<Trip>> getMyTrips() async {
     final email = currentLoginEmail?.toLowerCase();
     if (email == null || email.isEmpty) {
@@ -78,7 +84,7 @@ class TripService {
     return list;
   }
 
-  /// Scan QR pour surveillant (inchangé)
+  /// Scan QR pour surveillant
   Future<Map<String, dynamic>> scanQr(String token) async {
     final response = await supabase
         .from('trajets')
