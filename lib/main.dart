@@ -1,4 +1,5 @@
-import 'package:covoit_app/auth/screens/auth/login_page.dart';
+
+import 'package:covoit_app/auth/screens/auth/auth_choice_page.dart';
 import 'package:covoit_app/auth/screens/common/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -98,11 +99,13 @@ class AuthGate extends StatelessWidget {
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
         final currentSession = snapshot.data?.session ?? session;
-        if (currentSession == null) {
-          return const LoginPage();
-        } else {
-          return const HomePage();
-        }
+if (currentSession == null) {
+  return const AuthChoicePage();
+} else {
+  return const HomePage();
+}
+
+
       },
     );
   }

@@ -1,5 +1,5 @@
+import 'package:covoit_app/guard/guard_trips_page.dart';
 import 'package:flutter/material.dart';
-import 'parking_status_page.dart';
 import 'scan_qr_page.dart';
 
 class GuardHomePage extends StatelessWidget {
@@ -36,7 +36,23 @@ class GuardHomePage extends StatelessWidget {
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => const ParkingStatusPage(),
+                     builder: (_) => const GuardTripsPage(),
+
+                    ),
+                  );
+                },
+              ),
+            ),
+                        const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.trip_origin),
+                label: const Text('Voir trajets'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const GuardTripsPage(),
                     ),
                   );
                 },

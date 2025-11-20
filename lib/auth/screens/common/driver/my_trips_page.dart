@@ -39,8 +39,9 @@ class _MyTripsPageState extends State<MyTripsPage> {
       });
     } finally {
       if (mounted) {
-        loading = false;
-        setState(() {});
+        setState(() {
+          loading = false;
+        });
       }
     }
   }
@@ -60,6 +61,8 @@ class _MyTripsPageState extends State<MyTripsPage> {
           children: [
             if (error != null)
               Text(error!, style: const TextStyle(color: Colors.red)),
+            if (trips.isEmpty && error == null)
+              const Text('Tu n\'as encore créé aucun trajet.'),
             ...trips.map((trip) {
               final dateString =
                   '${trip.heureDepart.day}/${trip.heureDepart.month} '
@@ -80,29 +83,33 @@ class _MyTripsPageState extends State<MyTripsPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => TripQrPage(trip: trip),
-                            ),
-                          );
-                        },
-                        child: const Text('Voir QR Code'),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  TripPassengersPage(trip: trip),
-                            ),
-                          );
-                        },
-                        child: const Text('Voir les passagers'),
+                      Row(
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => TripQrPage(trip: trip),
+                                ),
+                              );
+                            },
+                            child: const Text('Voir QR Code'),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      TripPassengersPage(trip: trip),
+                                ),
+                              );
+                            },
+                            child: const Text('Voir les passagers'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

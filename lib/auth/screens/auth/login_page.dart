@@ -13,9 +13,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
-  final prenomController = TextEditingController();
-  final nomController = TextEditingController();
-  final telephoneController = TextEditingController();
 
   bool loading = false;
   String? error;
@@ -23,9 +20,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void dispose() {
     emailController.dispose();
-    prenomController.dispose();
-    nomController.dispose();
-    telephoneController.dispose();
     super.dispose();
   }
 
@@ -64,10 +58,8 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       // 1) chercher l'email dans app_users
-      final appUsersRes = await supabase
-          .from('app_users')
-          .select('email')
-          .eq('email', email);
+      final appUsersRes =
+          await supabase.from('app_users').select('email').eq('email', email);
 
       // 2) et dans guard_emails (surveillants)
       final guardsRes = await supabase
@@ -87,61 +79,11 @@ class _LoginPageState extends State<LoginPage> {
 
       // OK → connexion anonyme
       await _anonymousSignInWithEmail(email);
+      // L’AuthGate détectera la session et redirigera vers HomePage.
     } catch (e) {
       setState(() {
         error = 'Connexion impossible : $e';
       });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        loading = false;
-      });
-    }
-  }
-
-  Future<void> _onSignUp() async {
-    final rawEmail = emailController.text.trim();
-    final prenom = prenomController.text.trim();
-    final nom = nomController.text.trim();
-    final telephone = telephoneController.text.trim();
-
-    if (rawEmail.isEmpty || prenom.isEmpty || nom.isEmpty || telephone.isEmpty) {
-      setState(() {
-        error = 'Merci de remplir email, prénom, nom et téléphone pour créer un compte.';
-      });
-      return;
-    }
-
-    final email = rawEmail.toLowerCase();
-
-    setState(() {
-      loading = true;
-      error = null;
-    });
-
-    try {
-      // 1) ajouter dans app_users
-      await supabase.from('app_users').insert({
-        'email': email,
-        'prenom': prenom,
-        'nom': nom,
-        'telephone': telephone,
-      });
-
-      // 2) connexion anonyme
-      await _anonymousSignInWithEmail(email);
-    } catch (e) {
-      final msg = e.toString();
-      if (msg.contains('duplicate key value')) {
-        setState(() {
-          error =
-              'Un compte existe déjà avec cet email.\nUtilise plutôt "Se connecter".';
-        });
-      } else {
-        setState(() {
-          error = 'Erreur création compte : $e';
-        });
-      }
     } finally {
       if (!mounted) return;
       setState(() {
@@ -159,8 +101,8 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Connexion')),
-      body: SingleChildScrollView(
+      appBar: AppBar(title: const Text('Se connecter')),
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -169,28 +111,6 @@ class _LoginPageState extends State<LoginPage> {
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
                 labelText: 'Email',
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: prenomController,
-              decoration: const InputDecoration(
-                labelText: 'Prénom (obligatoire pour créer un compte)',
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: nomController,
-              decoration: const InputDecoration(
-                labelText: 'Nom (obligatoire pour créer un compte)',
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: telephoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Téléphone (obligatoire pour créer un compte)',
               ),
             ),
             const SizedBox(height: 16),
@@ -204,17 +124,6 @@ class _LoginPageState extends State<LoginPage> {
             PrimaryButton(
               text: 'Se connecter',
               onPressed: _onLogin,
-            ),
-            const SizedBox(height: 8),
-            PrimaryButton(
-              text: 'Créer un compte',
-              onPressed: _onSignUp,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Aucun mot de passe, aucune confirmation email.\n'
-              'Ton email + tes infos servent à te reconnaître et à donner tes coordonnées au conducteur quand tu réserves.',
-              textAlign: TextAlign.center,
             ),
           ],
         ),
