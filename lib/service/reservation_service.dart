@@ -4,7 +4,14 @@ import 'package:covoit_app/service/supabase_client.dart';
 import 'package:covoit_app/service/session_store.dart'; // currentLoginEmail
 
 class ReservationService {
-  /// Réserver une place sur un trajet donné
+  /// Petit helper pour rester compatible avec le code existant :
+  /// - available_trips_page.dart appelle reserveTrip(trip)
+  /// - en interne on réutilise reserveSeat(trip.id)
+  Future<void> reserveTrip(Trip trip) async {
+    await reserveSeat(trip.id);
+  }
+
+  /// Réserver une place sur un trajet donné (par id de trajet)
   Future<void> reserveSeat(String trajetId) async {
     final user = supabase.auth.currentUser;
     if (user == null) throw Exception('Utilisateur non connecté');
@@ -79,8 +86,7 @@ class ReservationService {
       }
 
       if (userInfo != null) {
-        passengerEmail =
-            (userInfo['email'] as String?) ?? passengerEmail;
+        passengerEmail = (userInfo['email'] as String?) ?? passengerEmail;
         prenom = userInfo['prenom'] as String?;
         nom = userInfo['nom'] as String?;
         telephone = userInfo['telephone'] as String?;
@@ -103,22 +109,24 @@ class ReservationService {
   Future<List<Trip>> getAvailableTrips() async {
     final currentEmail = (currentLoginEmail ?? '').toLowerCase();
 
-    // 1️⃣ On récupère tous les trajets
     final response = await supabase
         .from('trajets')
         .select()
+        // on garde seulement les trajets encore "actifs"
+        .neq('statut', 'termine')
+        .neq('statut', 'annule')
         .order('heure_depart', ascending: true);
 
     final allTrips = (response as List)
         .map((e) => Trip.fromMap(e as Map<String, dynamic>))
         .toList();
 
-    // 2️⃣ Si on n’a pas d’email (cas bizarre), on renvoie tout
+    // Si on n’a pas d’email (cas bizarre), on renvoie tout
     if (currentEmail.isEmpty) {
       return allTrips;
     }
 
-    // 3️⃣ Sinon, on enlève les trajets dont je suis le conducteur
+    // Sinon, on enlève les trajets dont je suis le conducteur
     final filtered = allTrips.where((trip) {
       final driverEmail = (trip.driverEmail ?? '').toLowerCase();
       return driverEmail != currentEmail;
@@ -176,9 +184,8 @@ class ReservationService {
         .eq('trajet_id', trajetId)
         .order('created_at', ascending: true);
 
-    final list = (res as List)
-        .map((e) => e as Map<String, dynamic>)
-        .toList();
+    final list =
+        (res as List).map((e) => e as Map<String, dynamic>).toList();
 
     return list;
   }

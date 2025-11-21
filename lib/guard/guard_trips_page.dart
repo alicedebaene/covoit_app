@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:covoit_app/service/supabase_client.dart';
 
 class GuardTripsPage extends StatefulWidget {
@@ -15,7 +17,7 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
   /// Liste brute des trajets (table `trajets`)
   List<Map<String, dynamic>> trips = [];
 
-  /// email (en minuscule) -> infos conducteur (table `app_users`)
+  /// email -> infos conducteur (table `app_users`)
   Map<String, Map<String, dynamic>> driversByEmail = {};
 
   @override
@@ -24,17 +26,61 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
     _loadTrips();
   }
 
+  // -------- GPS helpers --------
+
+  String? _gpsUrlFor(String? place) {
+    if (place == null) return null;
+    switch (place) {
+      case 'Parking CMA':
+        return 'https://maps.app.goo.gl/fWSvYDKn4Xv2xkU67?g_st=ipc';
+      case 'Campus':
+        return 'https://maps.app.goo.gl/nKrGxmG7KHbmvewy5?g_st=ipc';
+      case 'Camping':
+        return 'https://maps.app.goo.gl/UCYuXx5zeEuNR2Rq6?g_st=ipc';
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _openGps(String? place) async {
+    final url = _gpsUrlFor(place);
+    if (url == null) return;
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible d’ouvrir la carte.')),
+      );
+    }
+  }
+
+  Widget _gpsLink(String label, String? place) {
+    final url = _gpsUrlFor(place);
+    if (url == null) return const SizedBox.shrink();
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () => _openGps(place),
+        icon: const Icon(Icons.pin_drop),
+        label: Text('$label (ouvrir dans Maps)'),
+      ),
+    );
+  }
+
+  // -------- Chargement trajets + conducteurs --------
+
   Future<void> _loadTrips() async {
     try {
-      // 1️⃣ Récupérer tous les trajets
+      // trajets avec départ / arrivée
       final tripData = await supabase
           .from('trajets')
-          .select('id, heure_depart, statut, nb_places, driver_email')
+          .select(
+            'id, heure_depart, statut, nb_places, driver_email, depart, arrivee',
+          )
           .order('heure_depart', ascending: false);
 
       final tripsList = List<Map<String, dynamic>>.from(tripData as List);
 
-      // 2️⃣ Charger les conducteurs dans app_users
       final Map<String, Map<String, dynamic>> drivers = {};
 
       for (final t in tripsList) {
@@ -42,23 +88,16 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
         final email = emailRaw.toLowerCase().trim();
 
         if (email.isEmpty) continue;
-        if (drivers.containsKey(email)) continue; // déjà chargé
+        if (drivers.containsKey(email)) continue;
 
         try {
           final userData = await supabase
               .from('app_users')
-              .select('''
-                email,
-                prenom,
-                nom,
-                telephone,
-                permis_url,
-                car_plate,
-                car_model,
-                car_color
-              ''')
+              .select(
+                'email, prenom, nom, telephone, permis_url, car_plate, car_model, car_color',
+              )
               .eq('email', email)
-              .maybeSingle(); // null si rien
+              .maybeSingle();
 
           if (userData != null) {
             drivers[email] =
@@ -89,12 +128,9 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
     try {
       final data = await supabase
           .from('reservations')
-          .select('''
-            passenger_prenom,
-            passenger_nom,
-            passenger_email,
-            passenger_telephone
-          ''')
+          .select(
+            'passenger_prenom, passenger_nom, passenger_email, passenger_telephone',
+          )
           .eq('trajet_id', tripId);
 
       passengers = List<Map<String, dynamic>>.from(data as List);
@@ -107,6 +143,7 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
 
     showModalBottomSheet(
       context: context,
+      showDragHandle: true,
       builder: (context) {
         if (errorMsg != null) {
           return Padding(
@@ -189,35 +226,6 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
     );
   }
 
-  void _showPermisFullScreen(String permisUrl) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(16),
-          child: InteractiveViewer(
-            child: Container(
-              color: Colors.black,
-              child: Center(
-                child: Image.network(
-                  permisUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Impossible de charger la photo du permis',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -242,6 +250,9 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
 
           final statut = trip['statut'] as String? ?? 'inconnu';
           final nbPlaces = trip['nb_places'] ?? 0;
+
+          final depart = (trip['depart'] ?? '') as String;
+          final arrivee = (trip['arrivee'] ?? '') as String;
 
           final driverEmailRaw = (trip['driver_email'] ?? '') as String;
           final driverEmail = driverEmailRaw.toLowerCase();
@@ -294,30 +305,31 @@ class _GuardTripsPageState extends State<GuardTripsPage> {
                   ),
                   const SizedBox(height: 8),
 
-                  // 📸 Permis – vignette non croppée + tap pour plein écran
+                  // Lieux + GPS
+                  if (depart.isNotEmpty && arrivee.isNotEmpty) ...[
+                    Text('Trajet : $depart → $arrivee'),
+                    const SizedBox(height: 4),
+                    _gpsLink('Départ ($depart)', depart),
+                    _gpsLink('Arrivée ($arrivee)', arrivee),
+                    const SizedBox(height: 8),
+                  ],
+
+                  // Photo permis
                   if (permisUrl.isNotEmpty) ...[
                     const Text(
                       'Permis du conducteur :',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () => _showPermisFullScreen(permisUrl),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container
-                          (
-                          height: 160,
-                          width: double.infinity,
-                          color: Colors.black12,
-                          alignment: Alignment.center,
-                          child: Image.network(
-                            permisUrl,
-                            fit: BoxFit.contain, // ➜ plus de zoom
-                            errorBuilder: (_, __, ___) => const Text(
-                              'Impossible de charger la photo du permis',
-                            ),
-                          ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        permisUrl,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Text(
+                          'Impossible de charger la photo du permis',
                         ),
                       ),
                     ),
