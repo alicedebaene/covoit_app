@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:covoit_app/service/trip_service.dart';
 import 'package:covoit_app/auth/screens/common/driver/trip_qr_page.dart';
-import 'package:covoit_app/auth/screens/common/driver/my_trips_page.dart';
 import 'package:covoit_app/widgets/loading_indicator.dart';
 
 class CreateTripPage extends StatefulWidget {
@@ -19,17 +20,24 @@ class _CreateTripPageState extends State<CreateTripPage> {
   int nbPlaces = 1;
   final nbPlacesController = TextEditingController(text: '1');
 
-  // Sens du trajet
-  String depart = "Campus";
-  String arrivee = "Parking CMA";
+  /// Lieux possibles
+  static const _campus = 'Campus';
+  static const _parking = 'Parking CMA';
+  static const _camping = 'Camping';
 
-  void _invertDirection() {
-    setState(() {
-      final oldDepart = depart;
-      depart = arrivee;
-      arrivee = oldDepart;
-    });
-  }
+  /// URLs Google Maps associées
+  static const Map<String, String> _gpsUrls = {
+    _parking:
+        'https://maps.app.goo.gl/fWSvYDKn4Xv2xkU67?g_st=ipc', // Parking CMA
+    _campus:
+        'https://maps.app.goo.gl/nKrGxmG7KHbmvewy5?g_st=ipc', // Campus
+    _camping:
+        'https://maps.app.goo.gl/UCYuXx5zeEuNR2Rq6?g_st=ipc', // Camping
+  };
+
+  /// Valeurs choisies dans les menus
+  String _depart = _campus;
+  String _arrivee = _parking;
 
   @override
   void dispose() {
@@ -68,13 +76,11 @@ class _CreateTripPageState extends State<CreateTripPage> {
   }
 
   Future<void> _createTrip() async {
-    // Vérif date
     if (selectedDateTime == null) {
       setState(() => error = 'Choisis une date/heure');
       return;
     }
 
-    // Vérif nb places
     final parsed = int.tryParse(nbPlacesController.text);
     if (parsed == null || parsed <= 0) {
       setState(() => error = 'Nombre de places invalide');
@@ -82,13 +88,19 @@ class _CreateTripPageState extends State<CreateTripPage> {
     }
     nbPlaces = parsed;
 
+    final depart = _depart;
+    final arrivee = _arrivee;
+
+    // 🔁 Trajet retour si départ = Parking CMA
+    final bool isReturnTrip = depart == _parking;
+
     setState(() {
       loading = true;
       error = null;
     });
 
     try {
-      // Création du trajet (aller OU retour)
+      // 🟢 plus de paramètre isReturnTrip ici
       final trip = await tripService.createTrip(
         heureDepart: selectedDateTime!,
         nbPlaces: nbPlaces,
@@ -98,44 +110,17 @@ class _CreateTripPageState extends State<CreateTripPage> {
 
       if (!mounted) return;
 
-      // 🟢 Cas 1 : Aller -> on montre le QR
-      if (depart != 'Parking CMA') {
+      if (!isReturnTrip) {
+        // ALLER → on affiche le QR
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => TripQrPage(trip: trip),
           ),
         );
-        return;
+      } else {
+        // RETOUR → pas de QR
+        Navigator.of(context).pop();
       }
-
-      // 🔵 Cas 2 : Retour (Parking CMA -> …)
-      await showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Trajet retour créé'),
-            content: const Text(
-              'Ton trajet retour depuis le parking a bien été créé.\n\n'
-              'Pour sortir du parking, le surveillant doit scanner le même QR code '
-              'que pour ton trajet aller.\n\n'
-              'Les passagers pourront réserver ce trajet retour dans l\'onglet passager.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-
-      // On renvoie le conducteur vers ses trajets
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const MyTripsPage(),
-        ),
-      );
     } catch (e) {
       setState(() => error = e.toString());
     } finally {
@@ -143,6 +128,31 @@ class _CreateTripPageState extends State<CreateTripPage> {
         setState(() => loading = false);
       }
     }
+  }
+
+  Future<void> _openGps(String place) async {
+    final url = _gpsUrls[place];
+    if (url == null) return;
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible d’ouvrir la carte.')),
+      );
+    }
+  }
+
+  Widget _gpsLink(String label, String place) {
+    final url = _gpsUrls[place];
+    if (url == null) return const SizedBox.shrink();
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () => _openGps(place),
+        icon: const Icon(Icons.pin_drop),
+        label: Text('$label (ouvrir dans Maps)'),
+      ),
+    );
   }
 
   @override
@@ -154,84 +164,94 @@ class _CreateTripPageState extends State<CreateTripPage> {
     final dtText = selectedDateTime == null
         ? 'Aucune date/heure choisie'
         : '${selectedDateTime!.day}/${selectedDateTime!.month} '
-          '${selectedDateTime!.hour.toString().padLeft(2, "0")}:'
-          '${selectedDateTime!.minute.toString().padLeft(2, "0")}';
+            '${selectedDateTime!.hour.toString().padLeft(2, '0')}:'
+            '${selectedDateTime!.minute.toString().padLeft(2, '0')}';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Créer un trajet')),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Choix du trajet ---
-            const Text(
-              'Choix du trajet :',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Choix du trajet :',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
             const SizedBox(height: 8),
 
             Row(
               children: [
+                // Départ
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: depart,
+                    value: _depart,
                     decoration: const InputDecoration(labelText: 'Départ'),
                     items: const [
                       DropdownMenuItem(
-                        value: 'Campus',
-                        child: Text('Campus'),
+                        value: _campus,
+                        child: Text(_campus),
                       ),
                       DropdownMenuItem(
-                        value: 'Camping',
-                        child: Text('Camping'),
+                        value: _parking,
+                        child: Text(_parking),
                       ),
                       DropdownMenuItem(
-                        value: 'Parking CMA',
-                        child: Text('Parking CMA'),
+                        value: _camping,
+                        child: Text(_camping),
                       ),
                     ],
-                    onChanged: (val) {
-                      if (val == null) return;
-                      setState(() => depart = val);
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => _depart = v);
                     },
                   ),
                 ),
                 IconButton(
-                  onPressed: _invertDirection,
-                  icon: const Icon(Icons.swap_horiz, size: 30),
-                  tooltip: 'Inverser trajet (retour)',
+                  onPressed: () {
+                    setState(() {
+                      final tmp = _depart;
+                      _depart = _arrivee;
+                      _arrivee = tmp;
+                    });
+                  },
+                  icon: const Icon(Icons.swap_horiz),
                 ),
+                // Arrivée
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: arrivee,
+                    value: _arrivee,
                     decoration: const InputDecoration(labelText: 'Arrivée'),
                     items: const [
                       DropdownMenuItem(
-                        value: 'Parking CMA',
-                        child: Text('Parking CMA'),
+                        value: _campus,
+                        child: Text(_campus),
                       ),
                       DropdownMenuItem(
-                        value: 'Campus',
-                        child: Text('Campus'),
+                        value: _parking,
+                        child: Text(_parking),
                       ),
                       DropdownMenuItem(
-                        value: 'Camping',
-                        child: Text('Camping'),
+                        value: _camping,
+                        child: Text(_camping),
                       ),
                     ],
-                    onChanged: (val) {
-                      if (val == null) return;
-                      setState(() => arrivee = val);
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => _arrivee = v);
                     },
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 4),
 
-            const SizedBox(height: 24),
+            _gpsLink('Départ $_depart', _depart),
+            _gpsLink('Arrivée $_arrivee', _arrivee),
 
-            // --- Date / heure ---
+            const SizedBox(height: 16),
             Text(dtText),
             const SizedBox(height: 12),
             ElevatedButton(
@@ -239,8 +259,6 @@ class _CreateTripPageState extends State<CreateTripPage> {
               child: const Text('Choisir date & heure'),
             ),
             const SizedBox(height: 16),
-
-            // --- Nb places ---
             TextField(
               controller: nbPlacesController,
               keyboardType: TextInputType.number,
@@ -249,21 +267,19 @@ class _CreateTripPageState extends State<CreateTripPage> {
               ),
             ),
             const SizedBox(height: 16),
-
             if (error != null)
               Text(
                 error!,
                 style: const TextStyle(color: Colors.red),
               ),
-
             const Spacer(),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _createTrip,
-                child: const Text('Créer et générer QR'),
+                child: const Text('Créer le trajet'),
               ),
+              
             ),
           ],
         ),
