@@ -1,7 +1,7 @@
 import 'package:covoit_app/guard/guard_home_page.dart';
 import 'package:covoit_app/passenger/passenger_home_page.dart';
 import 'package:flutter/material.dart';
-
+import 'package:covoit_app/auth/screens/common/driver/parking_status.dart';
 import 'package:covoit_app/service/auth_services/auth_service.dart';
 import 'package:covoit_app/service/supabase_client.dart';
 import 'package:covoit_app/service/session_store.dart';
@@ -169,7 +169,7 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(8),
         color: const Color(0xFF0057A3),
         child: const Text(
-          'Ovalies 2025 - Covoiturage officiel 🏉',
+          'Ovalies 2026 - Covoiturage officiel 🏉',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
@@ -216,6 +216,22 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
               ),
+                          const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.local_parking),
+                label: const Text('Voir état du parking'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                     builder: (_) => const ParkingStatusPage(),
+
+                    ),
+                  );
+                },
+              ),
+            ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
