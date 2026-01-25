@@ -20,6 +20,13 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
   bool loading = true;
   String? error;
 
+  // === Palette (Charte Ovalink) ===
+  static const Color _bg = Color(0xFFFCFDC9); // beige fond
+  static const Color _primary = Color(0xFFFFD65F); // jaune principal
+  static const Color _primarySoft = Color(0xFFFDF6C2); // jaune clair
+  static const Color _green = Color(0xFF1DCA68); // vert
+  static const Color _text = Color(0xFF1E1E1E);
+
   @override
   void initState() {
     super.initState();
@@ -84,8 +91,7 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
             bytes,
           );
 
-      final publicUrl =
-          supabase.storage.from('permis').getPublicUrl(fileName);
+      final publicUrl = supabase.storage.from('permis').getPublicUrl(fileName);
 
       setState(() {
         permisUrl = publicUrl;
@@ -102,10 +108,7 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
     final model = modelController.text.trim();
     final color = colorController.text.trim();
 
-    if (permisUrl == null ||
-        plate.isEmpty ||
-        model.isEmpty ||
-        color.isEmpty) {
+    if (permisUrl == null || plate.isEmpty || model.isEmpty || color.isEmpty) {
       setState(() {
         error =
             'Merci de choisir une photo de permis et de remplir plaque, modèle et couleur.';
@@ -146,6 +149,51 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
     }
   }
 
+  InputDecoration _fieldDecoration({
+    required String label,
+    String? hint,
+    IconData? icon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      filled: true,
+      fillColor: _primarySoft.withOpacity(0.55),
+      prefixIcon: icon == null ? null : Icon(icon),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: _primarySoft),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: _primarySoft),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: _green, width: 2),
+      ),
+    );
+  }
+
+  Widget _card({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _primarySoft, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
@@ -155,77 +203,295 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Infos conducteur')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _bg,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Infos conducteur',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            color: _text,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: _text),
+      ),
+      body: SafeArea(
+        child: Stack(
           children: [
-            // Permis
-            Text(
-              'Photo du permis',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _pickAndUploadPermis,
-              icon: const Icon(Icons.photo_camera),
-              label: Text(
-                permisUrl == null
-                    ? 'Ajouter une photo'
-                    : 'Modifier la photo du permis',
+            // Décor voitures bas (si l’asset existe)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.95,
+                  child: Image.asset(
+                    'assets/images/cars_border.png',
+                    fit: BoxFit.cover,
+                    height: 70,
+                    errorBuilder: (_, __, ___) => const SizedBox(height: 70),
+                  ),
+                ),
               ),
             ),
-            if (permisUrl != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Photo enregistrée ✅',
-                style: TextStyle(color: Colors.green[700]),
-              ),
-            ],
-            const SizedBox(height: 24),
 
-            // Plaque
-            TextField(
-              controller: plateController,
-              decoration: const InputDecoration(
-                labelText: 'Plaque d’immatriculation',
-                hintText: 'AA-123-BB',
-              ),
-            ),
-            const SizedBox(height: 12),
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 680),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header card
+                      _card(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _primarySoft,
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: _primary,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'PROFIL CONDUCTEUR',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.1,
+                                      color: _text,
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  Icons.badge_outlined,
+                                  color: _green.withOpacity(0.9),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Ajoute tes infos voiture pour pouvoir créer un trajet.',
+                              style: TextStyle(
+                                color: _text.withOpacity(0.75),
+                                fontWeight: FontWeight.w600,
+                                height: 1.25,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
-            // Modèle
-            TextField(
-              controller: modelController,
-              decoration: const InputDecoration(
-                labelText: 'Modèle de la voiture',
-                hintText: 'Clio 4, 208, Tesla Model 3...',
-              ),
-            ),
-            const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-            // Couleur
-            TextField(
-              controller: colorController,
-              decoration: const InputDecoration(
-                labelText: 'Couleur de la voiture',
-                hintText: 'Bleu foncé, gris, noir...',
-              ),
-            ),
-            const SizedBox(height: 20),
+                      // Permis card
+                      _card(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text(
+                              'Photo du permis',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: _text,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: _pickAndUploadPermis,
+                              icon: const Icon(Icons.photo_camera),
+                              label: Text(
+                                permisUrl == null
+                                    ? 'Ajouter une photo'
+                                    : 'Modifier la photo du permis',
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: _text,
+                                side: BorderSide(color: _primarySoft, width: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                  horizontal: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                backgroundColor: _primarySoft.withOpacity(0.35),
+                              ),
+                            ),
+                            if (permisUrl != null) ...[
+                              const SizedBox(height: 10),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _green.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: _green.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.check_circle, size: 18),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Photo enregistrée',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
 
-            if (error != null) ...[
-              Text(
-                error!,
-                style: const TextStyle(color: Colors.red),
-              ),
-              const SizedBox(height: 8),
-            ],
+                      const SizedBox(height: 12),
 
-            ElevatedButton(
-              onPressed: _save,
-              child: const Text('Enregistrer'),
+                      // Fields card
+                      _card(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text(
+                              'Infos voiture',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: _text,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: plateController,
+                              textInputAction: TextInputAction.next,
+                              decoration: _fieldDecoration(
+                                label: 'Plaque d’immatriculation',
+                                hint: 'AA-123-BB',
+                                icon: Icons.confirmation_number_outlined,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: modelController,
+                              textInputAction: TextInputAction.next,
+                              decoration: _fieldDecoration(
+                                label: 'Modèle de la voiture',
+                                hint: 'Clio 4, 208, Tesla Model 3…',
+                                icon: Icons.directions_car_outlined,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: colorController,
+                              textInputAction: TextInputAction.done,
+                              decoration: _fieldDecoration(
+                                label: 'Couleur de la voiture',
+                                hint: 'Bleu foncé, gris, noir…',
+                                icon: Icons.palette_outlined,
+                              ),
+                              onSubmitted: (_) => _save(),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Error bubble
+                      if (error != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.red.withOpacity(0.25),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  error!,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.25,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // Save button
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: _primarySoft, width: 2),
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _save,
+                            icon: const Icon(Icons.save_outlined),
+                            label: const Text('Enregistrer'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _primary,
+                              foregroundColor: _text,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 14,
+                                horizontal: 16,
+                              ),
+                              textStyle: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // espace pour décor bas
+                      const SizedBox(height: 70),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),

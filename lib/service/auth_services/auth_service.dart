@@ -1,7 +1,6 @@
 import 'package:covoit_app/service/supabase_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
 class AuthService {
   Future<void> signIn(String email, String password) async {
     final response = await supabase.auth.signInWithPassword(
