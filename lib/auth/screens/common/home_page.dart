@@ -45,11 +45,8 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      // On vérifie directement dans guard_emails
-      final res = await supabase
-          .from('guard_emails')
-          .select('email')
-          .eq('email', email);
+      final res =
+          await supabase.from('guard_emails').select('email').eq('email', email);
 
       final guard = (res as List).isNotEmpty;
 
@@ -183,7 +180,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // 🛡️ Surveillant
+    // 🛡️ Mode SURVEILLANT
     if (isGuard) {
       return Scaffold(
         backgroundColor: _bg,
@@ -211,7 +208,7 @@ class _HomePageState extends State<HomePage> {
         body: SafeArea(
           child: Stack(
             children: [
-              // Décor voitures bas (si l’asset existe)
+              // ✅ décor bas statique (optionnel)
               Positioned(
                 left: 0,
                 right: 0,
@@ -230,7 +227,7 @@ class _HomePageState extends State<HomePage> {
               ),
 
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 82),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 640),
@@ -283,7 +280,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Du campus à Elispace, merci pour votre aide 👮‍♂️',
+                                'Du campus au parking CMA, merci pour votre aide 👮‍♂️',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: _text.withOpacity(0.75),
@@ -342,8 +339,6 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         ),
-
-                        const SizedBox(height: 70),
                       ],
                     ),
                   ),
@@ -355,7 +350,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // 🚗 Utilisateur normal : Conducteur + Passager + Parking
+    // 🚗 Mode NORMAL
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -382,7 +377,7 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Décor voitures bas (si l’asset existe)
+            // ✅ décor bas statique (optionnel)
             Positioned(
               left: 0,
               right: 0,
@@ -401,7 +396,7 @@ class _HomePageState extends State<HomePage> {
             ),
 
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 82),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 640),
@@ -528,8 +523,6 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-
-                      const SizedBox(height: 70),
                     ],
                   ),
                 ),

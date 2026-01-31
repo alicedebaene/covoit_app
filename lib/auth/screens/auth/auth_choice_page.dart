@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'sign_up_page.dart';
 
+// ✅ widgets communs
+import 'package:covoit_app/widgets/animated_bottom_cars.dart';
+import 'package:covoit_app/widgets/ovalink_logo_badge.dart';
+
 class AuthChoicePage extends StatelessWidget {
   const AuthChoicePage({super.key});
 
@@ -15,6 +19,9 @@ class AuthChoicePage extends StatelessWidget {
   // Bleu pastel
   static const Color _bluePastel = Color(0xFF8ECDF4);
   static const Color _bluePastelSoft = Color(0xFFEAF6FD);
+
+  // Hauteur du décor animé
+  static const double _bottomImageHeight = 80;
 
   @override
   Widget build(BuildContext context) {
@@ -36,39 +43,28 @@ class AuthChoicePage extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // --- Décor bas (optionnel) ---
-            // Si l'image n'existe pas, ça n'explose pas grâce au errorBuilder
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.95,
-                  child: Image.asset(
-                    'assets/images/cars_border.png',
-                    fit: BoxFit.cover,
-                    height: 70,
-                    errorBuilder: (_, __, ___) => const SizedBox(height: 70),
-                  ),
-                ),
-              ),
-            ),
-
-            // --- Contenu ---
+            // =====================
+            // CONTENU
+            // =====================
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                _bottomImageHeight + 12,
+              ),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 520),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 20,
+                      horizontal: 20,
+                      vertical: 22,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: _primarySoft, width: 2),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.08),
@@ -76,18 +72,23 @@ class AuthChoicePage extends StatelessWidget {
                           offset: const Offset(0, 10),
                         ),
                       ],
-                      border: Border.all(
-                        color: _primarySoft,
-                        width: 2,
-                      ),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Badge "OVALINK"
+                        // =====================
+                        // LOGO BIEN VISIBLE
+                        // =====================
+                        const OvalinkLogoBadge(
+                          size: 160, // 🔥 plus grand = bien visible
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Badge texte
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
+                            horizontal: 16,
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
@@ -95,26 +96,26 @@ class AuthChoicePage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
                               color: _bluePastel,
-                              width: 1.5,
+                              width: 1.6,
                             ),
                           ),
                           child: const Text(
                             'OVALINK',
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
-                              letterSpacing: 1.2,
+                              letterSpacing: 1.3,
                               color: _text,
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 18),
 
                         const Text(
                           'Bienvenue sur Ovalink',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: _text,
                           ),
@@ -133,9 +134,11 @@ class AuthChoicePage extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
 
-                        // Bouton 1 : bleu pastel plein
+                        // =====================
+                        // BOUTONS
+                        // =====================
                         _PastelButton(
                           text: 'Se connecter',
                           backgroundColor: _bluePastel,
@@ -149,9 +152,8 @@ class AuthChoicePage extends StatelessWidget {
                           },
                         ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
 
-                        // Bouton 2 : bleu pastel clair + contour
                         _PastelButton(
                           text: 'Créer un compte',
                           backgroundColor: _bluePastelSoft,
@@ -166,11 +168,10 @@ class AuthChoicePage extends StatelessWidget {
                           },
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 14),
 
-                        // Accent vert (DA)
+                        // Accent vert
                         Container(
-                          margin: const EdgeInsets.only(top: 6),
                           width: 78,
                           height: 8,
                           decoration: BoxDecoration(
@@ -183,6 +184,39 @@ class AuthChoicePage extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
+
+            // =====================
+            // FONDU AU-DESSUS DES VOITURES
+            // =====================
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: _bottomImageHeight - 18,
+              height: 24,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        _bg,
+                        _bg.withOpacity(0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // =====================
+            // VOITURES ANIMÉES
+            // =====================
+            const AnimatedBottomCars(
+              height: _bottomImageHeight,
+              opacity: 0.90,
+              secondsPerLoop: 10,
             ),
           ],
         ),
@@ -210,7 +244,7 @@ class _PastelButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: 50,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -218,7 +252,7 @@ class _PastelButton extends StatelessWidget {
           foregroundColor: foregroundColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             side: borderColor != null
                 ? BorderSide(color: borderColor!, width: 1.6)
                 : BorderSide.none,

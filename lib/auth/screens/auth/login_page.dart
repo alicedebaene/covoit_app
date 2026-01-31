@@ -3,6 +3,7 @@ import 'package:covoit_app/service/supabase_client.dart';
 import 'package:covoit_app/widgets/primary_button.dart';
 import 'package:covoit_app/widgets/loading_indicator.dart';
 import 'package:covoit_app/service/session_store.dart'; // currentLoginEmail
+import 'package:covoit_app/widgets/animated_bottom_cars.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,13 +20,15 @@ class _LoginPageState extends State<LoginPage> {
 
   // === Palette (Charte Ovalink) ===
   static const Color _bg = Color(0xFFFCFDC9); // beige fond
-  static const Color _primary = Color(0xFFFFD65F); // jaune principal
   static const Color _primarySoft = Color(0xFFFDF6C2); // jaune clair
   static const Color _green = Color(0xFF1DCA68); // vert
   static const Color _text = Color(0xFF1E1E1E);
 
   // ✅ Bleu pastel pour les boutons
   static const Color _bluePastel = Color(0xFF8ECDF4);
+
+  // ✅ Hauteur du décor en bas
+  static const double _bottomImageHeight = 80;
 
   @override
   void dispose() {
@@ -128,26 +131,14 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Décor voitures bas (si l’asset existe)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.95,
-                  child: Image.asset(
-                    'assets/images/cars_border.png',
-                    fit: BoxFit.cover,
-                    height: 70,
-                    errorBuilder: (_, __, ___) => const SizedBox(height: 70),
-                  ),
-                ),
-              ),
-            ),
-
+            // ✅ Contenu
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                _bottomImageHeight + 12,
+              ),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 520),
@@ -183,7 +174,10 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: BoxDecoration(
                               color: _primarySoft,
                               borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: _primary, width: 1.5),
+                              border: Border.all(
+                                color: _bluePastel,
+                                width: 1.5,
+                              ),
                             ),
                             child: const Text(
                               'OVALINK',
@@ -221,7 +215,7 @@ class _LoginPageState extends State<LoginPage> {
 
                         const SizedBox(height: 18),
 
-                        // Champ email stylé (fonction identique)
+                        // Champ email
                         TextField(
                           controller: emailController,
                           keyboardType: TextInputType.emailAddress,
@@ -253,7 +247,6 @@ class _LoginPageState extends State<LoginPage> {
 
                         const SizedBox(height: 12),
 
-                        // Erreur en bulle (plus propre)
                         if (error != null) ...[
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -323,6 +316,13 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
+            ),
+
+            // ✅ Voitures animées en bas (gauche -> droite via le widget)
+            const AnimatedBottomCars(
+              height: _bottomImageHeight,
+              opacity: 0.90,
+              secondsPerLoop: 10,
             ),
           ],
         ),
