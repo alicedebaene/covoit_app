@@ -21,9 +21,6 @@ class _SignUpPageState extends State<SignUpPage> {
   bool loading = false;
   String? error;
 
-  // ✅ charte obligatoire
-  bool charteAccepted = false;
-
   // === Palette (Charte Ovalink) ===
   static const Color _bg = Color(0xFFFCFDC9); // beige fond
   static const Color _primarySoft = Color(0xFFFDF6C2); // jaune clair
@@ -53,7 +50,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
   Future<void> _anonymousSignInWithEmail(String email) async {
     final normalizedEmail = email.toLowerCase();
-
     currentLoginEmail = normalizedEmail;
 
     await supabase.auth.signOut();
@@ -72,20 +68,12 @@ class _SignUpPageState extends State<SignUpPage> {
     final telephone = telephoneController.text.trim();
 
     final telSansEspaces = telephone.replaceAll(' ', '');
-    final telephoneValide = telSansEspaces.length > 3;
+    final telephoneValide = telSansEspaces.length > 3; // +33 + au moins 1 chiffre
 
     if (rawEmail.isEmpty || prenom.isEmpty || nom.isEmpty || !telephoneValide) {
       setState(() {
         error =
             'Merci de remplir email, prénom, nom et téléphone (+33 …) pour créer un compte.';
-      });
-      return;
-    }
-
-    // ✅ bloque si charte non acceptée
-    if (!charteAccepted) {
-      setState(() {
-        error = 'Merci d’accepter l’engagement de sécurité avant de créer un compte.';
       });
       return;
     }
@@ -103,12 +91,10 @@ class _SignUpPageState extends State<SignUpPage> {
         'prenom': prenom,
         'nom': nom,
         'telephone': telephone,
-        // Optionnel si tu ajoutes les colonnes en base :
-        // 'charte_securite_acceptee': true,
-        // 'charte_securite_date': DateTime.now().toIso8601String(),
       });
 
       await _anonymousSignInWithEmail(email);
+      // L’AuthGate détectera la session et redirigera vers HomePage.
     } catch (e) {
       final msg = e.toString();
       if (msg.contains('duplicate key value')) {
@@ -155,85 +141,10 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget _charteWidget() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.withOpacity(0.35)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Engagement de sécurité',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 14,
-              color: _text,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-             'En créant un compte et en utilisant la plateforme de covoiturage Ovalink – Ovalies UniLaSalle, '
-    'je m’engage à respecter strictement le Code de la route et à ne jamais conduire sous l’emprise '
-    'de l’alcool, de stupéfiants ou de toute substance interdite.\n\n'
-    'Je reconnais que Ovalink est une plateforme de mise en relation entre conducteurs et passagers '
-    'et que l’organisation des Ovalies UniLaSalle n’assure pas la prise en charge du transport. '
-    'Elle n’intervient ni dans l’organisation des trajets, ni dans l’assurance des véhicules ou des personnes.\n\n'
-    'Chaque conducteur demeure seul responsable de son véhicule, de sa conduite et de la souscription '
-    'à une assurance obligatoire en cours de validité.\n\n'
-    'En cas d’accident de la circulation survenant lors d’un trajet effectué via la plateforme, '
-    'la responsabilité de l’organisation des Ovalies UniLaSalle et de la plateforme Ovalink '
-    'ne pourra en aucun cas être engagée.\n\n'
-    'En cochant cette case, je reconnais avoir pris connaissance de cet engagement et l’accepter sans réserve.',
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.25,
-              color: _text.withOpacity(0.78),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Checkbox(
-                value: charteAccepted,
-                onChanged: (v) {
-                  setState(() {
-                    charteAccepted = v ?? false;
-                    // option : on efface l’erreur si on coche
-                    if (charteAccepted && error != null) error = null;
-                  });
-                },
-              ),
-              const Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: Text(
-                    'J’ai lu et j’accepte cet engagement.',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: _text,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(
-        body: LoadingIndicator(),
-      );
+      return const Scaffold(body: LoadingIndicator());
     }
 
     return Scaffold(
@@ -244,17 +155,14 @@ class _SignUpPageState extends State<SignUpPage> {
         centerTitle: true,
         title: const Text(
           'Créer un compte',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            color: _text,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w900, color: _text),
         ),
         iconTheme: const IconThemeData(color: _text),
       ),
       body: SafeArea(
         child: Stack(
           children: [
-            // ✅ Contenu scrollable (avec marge pour l'animation en bas)
+            // ✅ contenu scrollable + marge pour l’animation en bas
             SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
                 16,
@@ -285,7 +193,6 @@ class _SignUpPageState extends State<SignUpPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Badge
                         Align(
                           alignment: Alignment.center,
                           child: Container(
@@ -311,9 +218,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 14),
-
                         const Text(
                           'Tes infos pour covoiturer',
                           textAlign: TextAlign.center,
@@ -334,7 +239,6 @@ class _SignUpPageState extends State<SignUpPage> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-
                         const SizedBox(height: 18),
 
                         TextField(
@@ -387,19 +291,12 @@ class _SignUpPageState extends State<SignUpPage> {
                               telephoneController.text = '+33 ';
                               telephoneController.selection =
                                   TextSelection.fromPosition(
-                                TextPosition(
-                                  offset: telephoneController.text.length,
-                                ),
+                                TextPosition(offset: telephoneController.text.length),
                               );
                             }
                           },
                           onSubmitted: (_) => _onSignUp(),
                         ),
-
-                        const SizedBox(height: 12),
-
-                        // ✅ Charte + checkbox
-                        _charteWidget(),
 
                         const SizedBox(height: 12),
 
@@ -416,10 +313,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
-                                  Icons.error_outline,
-                                  color: Colors.red,
-                                ),
+                                const Icon(Icons.error_outline, color: Colors.red),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
@@ -437,7 +331,6 @@ class _SignUpPageState extends State<SignUpPage> {
                           const SizedBox(height: 12),
                         ],
 
-                        // ✅ Bouton bleu pastel via Theme + désactivation si charte pas cochée
                         Theme(
                           data: Theme.of(context).copyWith(
                             elevatedButtonTheme: ElevatedButtonThemeData(
@@ -447,21 +340,14 @@ class _SignUpPageState extends State<SignUpPage> {
                               ),
                             ),
                           ),
-                          child: IgnorePointer(
-                            ignoring: !charteAccepted,
-                            child: Opacity(
-                              opacity: charteAccepted ? 1.0 : 0.55,
-                              child: PrimaryButton(
-                                text: 'Créer un compte',
-                                onPressed: _onSignUp,
-                              ),
-                            ),
+                          child: PrimaryButton(
+                            text: 'Créer un compte',
+                            onPressed: _onSignUp,
                           ),
                         ),
 
                         const SizedBox(height: 14),
 
-                        // Note / disclaimer
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -501,7 +387,7 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
             ),
 
-            // ✅ Voitures animées en bas
+            // ✅ voitures animées en bas
             const AnimatedBottomCars(
               height: _bottomImageHeight,
               opacity: 0.90,

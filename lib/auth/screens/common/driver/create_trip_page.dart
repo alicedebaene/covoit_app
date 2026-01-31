@@ -17,8 +17,8 @@ class _CreateTripPageState extends State<CreateTripPage> {
   bool loading = false;
   String? error;
 
+  // ✅ dropdown places 1..6
   int nbPlaces = 1;
-  final nbPlacesController = TextEditingController(text: '1');
 
   /// Lieux possibles
   static const _campus = 'Campus';
@@ -42,12 +42,6 @@ class _CreateTripPageState extends State<CreateTripPage> {
   static const Color _primarySoft = Color(0xFFFDF6C2); // jaune clair
   static const Color _green = Color(0xFF1DCA68); // vert
   static const Color _text = Color(0xFF1E1E1E);
-
-  @override
-  void dispose() {
-    nbPlacesController.dispose();
-    super.dispose();
-  }
 
   Future<void> _pickDateTime() async {
     final now = DateTime.now();
@@ -85,13 +79,6 @@ class _CreateTripPageState extends State<CreateTripPage> {
       return;
     }
 
-    final parsed = int.tryParse(nbPlacesController.text);
-    if (parsed == null || parsed <= 0) {
-      setState(() => error = 'Nombre de places invalide');
-      return;
-    }
-    nbPlaces = parsed;
-
     final depart = _depart;
     final arrivee = _arrivee;
 
@@ -104,10 +91,9 @@ class _CreateTripPageState extends State<CreateTripPage> {
     });
 
     try {
-      // 🟢 plus de paramètre isReturnTrip ici
       final trip = await tripService.createTrip(
         heureDepart: selectedDateTime!,
-        nbPlaces: nbPlaces,
+        nbPlaces: nbPlaces, // ✅ vient du dropdown
         depart: depart,
         arrivee: arrivee,
       );
@@ -416,7 +402,7 @@ class _CreateTripPageState extends State<CreateTripPage> {
 
                       const SizedBox(height: 12),
 
-                      // Carte - date/heure + places
+                      // Carte - date/heure + places (dropdown)
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -477,17 +463,28 @@ class _CreateTripPageState extends State<CreateTripPage> {
 
                             const SizedBox(height: 12),
 
-                            // Places
-                            TextField(
-                              controller: nbPlacesController,
-                              keyboardType: TextInputType.number,
+                            // ✅ Places (dropdown 1..6)
+                            DropdownButtonFormField<int>(
+                              value: nbPlaces,
                               decoration: _fieldDecoration(
                                 label: 'Places disponibles',
                                 icon: Icons.event_seat_outlined,
                               ).copyWith(
                                 helperText:
-                                    'Indique le nombre de places libres dans ta voiture.',
+                                    'Choisis le nombre de places libres (1 à 6).',
                               ),
+                              items: List.generate(6, (i) => i + 1)
+                                  .map(
+                                    (n) => DropdownMenuItem<int>(
+                                      value: n,
+                                      child: Text('$n'),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v == null) return;
+                                setState(() => nbPlaces = v);
+                              },
                             ),
                           ],
                         ),
@@ -527,7 +524,7 @@ class _CreateTripPageState extends State<CreateTripPage> {
                         const SizedBox(height: 12),
                       ],
 
-                      // Bouton action (dans une carte sticky visuelle)
+                      // Bouton action
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
