@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:covoit_app/widgets/primary_button.dart';
 
 import 'login_page.dart';
 import 'sign_up_page.dart';
@@ -7,12 +6,15 @@ import 'sign_up_page.dart';
 class AuthChoicePage extends StatelessWidget {
   const AuthChoicePage({super.key});
 
-  // === Palette (Charte Ovalink) ===
+  // === Palette (Charte Ovalink + bleu pastel) ===
   static const Color _bg = Color(0xFFFCFDC9); // beige fond
-  static const Color _primary = Color(0xFFFFD65F); // jaune principal
   static const Color _primarySoft = Color(0xFFFDF6C2); // jaune clair
   static const Color _green = Color(0xFF1DCA68); // vert
   static const Color _text = Color(0xFF1E1E1E);
+
+  // Bleu pastel
+  static const Color _bluePastel = Color(0xFF8ECDF4);
+  static const Color _bluePastelSoft = Color(0xFFEAF6FD);
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +36,8 @@ class AuthChoicePage extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // --- Décor voitures bas (à activer quand l'asset est en place) ---
-            // Place l'image dans: assets/images/cars_border.png
-            // et déclare-la dans pubspec.yaml
+            // --- Décor bas (optionnel) ---
+            // Si l'image n'existe pas, ça n'explose pas grâce au errorBuilder
             Positioned(
               left: 0,
               right: 0,
@@ -83,7 +84,7 @@ class AuthChoicePage extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Petit badge "Ovalink"
+                        // Badge "OVALINK"
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
@@ -93,7 +94,7 @@ class AuthChoicePage extends StatelessWidget {
                             color: _primarySoft,
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color: _primary,
+                              color: _bluePastel,
                               width: 1.5,
                             ),
                           ),
@@ -134,9 +135,11 @@ class AuthChoicePage extends StatelessWidget {
 
                         const SizedBox(height: 20),
 
-                        // Bouton Se connecter (logique inchangée)
-                        PrimaryButton(
+                        // Bouton 1 : bleu pastel plein
+                        _PastelButton(
                           text: 'Se connecter',
+                          backgroundColor: _bluePastel,
+                          foregroundColor: Colors.white,
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -148,9 +151,12 @@ class AuthChoicePage extends StatelessWidget {
 
                         const SizedBox(height: 12),
 
-                        // Bouton Créer un compte (même widget pour ne pas toucher aux composants)
-                        PrimaryButton(
+                        // Bouton 2 : bleu pastel clair + contour
+                        _PastelButton(
                           text: 'Créer un compte',
+                          backgroundColor: _bluePastelSoft,
+                          foregroundColor: _text,
+                          borderColor: _bluePastel,
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -162,7 +168,7 @@ class AuthChoicePage extends StatelessWidget {
 
                         const SizedBox(height: 10),
 
-                        // Petit accent vert (DA)
+                        // Accent vert (DA)
                         Container(
                           margin: const EdgeInsets.only(top: 6),
                           width: 78,
@@ -179,6 +185,51 @@ class AuthChoicePage extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PastelButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onPressed;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final Color? borderColor;
+
+  const _PastelButton({
+    required this.text,
+    required this.onPressed,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    this.borderColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          foregroundColor: foregroundColor,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: borderColor != null
+                ? BorderSide(color: borderColor!, width: 1.6)
+                : BorderSide.none,
+          ),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+          ),
         ),
       ),
     );

@@ -18,6 +18,9 @@ class _AvailableTripsPageState extends State<AvailableTripsPage> {
   String? error;
   List<Trip> trips = [];
 
+  // ✅ map trajetId -> nb réservations (pour calcul places restantes)
+  Map<String, int> reservationCounts = {};
+
   // === Palette (Charte Ovalink) ===
   static const Color _bg = Color(0xFFFCFDC9); // beige fond
   static const Color _primary = Color(0xFFFFD65F); // jaune principal
@@ -39,8 +42,14 @@ class _AvailableTripsPageState extends State<AvailableTripsPage> {
 
     try {
       final list = await reservationService.getAvailableTrips();
+
+      // ✅ récupère le nombre de réservations par trajet (en 1 requête)
+      final ids = list.map((t) => t.id).toList();
+      final counts = await reservationService.getReservationCountsForTrips(ids);
+
       setState(() {
         trips = list;
+        reservationCounts = counts;
       });
     } catch (e) {
       setState(() {
@@ -199,7 +208,6 @@ class _AvailableTripsPageState extends State<AvailableTripsPage> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Décor voitures bas (si l’asset existe)
             Positioned(
               left: 0,
               right: 0,
@@ -222,7 +230,6 @@ class _AvailableTripsPageState extends State<AvailableTripsPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Header
                   _card(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -360,8 +367,11 @@ class _AvailableTripsPageState extends State<AvailableTripsPage> {
 
     final depart = trip.depart;
     final arrivee = trip.arrivee;
-    final remaining = trip.remainingPlaces;
+
+    // ✅ places restantes = nbPlaces - nbReservations
     final total = trip.nbPlaces;
+    final reserved = reservationCounts[trip.id] ?? 0;
+    final remaining = (total - reserved) < 0 ? 0 : (total - reserved);
 
     final availabilityColor = _availabilityColor(remaining, total);
 

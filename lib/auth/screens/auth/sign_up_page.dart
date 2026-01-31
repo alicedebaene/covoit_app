@@ -27,6 +27,9 @@ class _SignUpPageState extends State<SignUpPage> {
   static const Color _green = Color(0xFF1DCA68); // vert
   static const Color _text = Color(0xFF1E1E1E);
 
+  // ✅ Bleu pastel pour les boutons
+  static const Color _bluePastel = Color(0xFF8ECDF4);
+
   @override
   void initState() {
     super.initState();
@@ -348,9 +351,20 @@ class _SignUpPageState extends State<SignUpPage> {
                           const SizedBox(height: 12),
                         ],
 
-                        PrimaryButton(
-                          text: 'Créer un compte',
-                          onPressed: _onSignUp,
+                        // ✅ Bouton : on garde ton composant, on change juste la couleur via Theme
+                        Theme(
+                          data: Theme.of(context).copyWith(
+                            elevatedButtonTheme: ElevatedButtonThemeData(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _bluePastel,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                          child: PrimaryButton(
+                            text: 'Créer un compte',
+                            onPressed: _onSignUp,
+                          ),
                         ),
 
                         const SizedBox(height: 14),

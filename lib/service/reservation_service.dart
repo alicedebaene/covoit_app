@@ -4,9 +4,8 @@ import 'package:covoit_app/service/supabase_client.dart';
 import 'package:covoit_app/service/session_store.dart'; // currentLoginEmail
 
 class ReservationService {
-  /// Petit helper pour rester compatible avec le code existant :
+  /// Compat avec le code existant :
   /// - available_trips_page.dart appelle reserveTrip(trip)
-  /// - en interne on réutilise reserveSeat(trip.id)
   Future<void> reserveTrip(Trip trip) async {
     await reserveSeat(trip.id);
   }
@@ -16,7 +15,10 @@ class ReservationService {
     final user = supabase.auth.currentUser;
     if (user == null) throw Exception('Utilisateur non connecté');
 
-    // 1. Récupérer le trajet
+    // Email de la personne actuellement connectée
+    final currentEmail = (currentLoginEmail ?? '').trim().toLowerCase();
+
+    // 1) Récupérer le trajet
     final tripRow = await supabase
         .from('trajets')
         .select()
@@ -24,9 +26,6 @@ class ReservationService {
         .single();
 
     final trip = Trip.fromMap(tripRow as Map<String, dynamic>);
-
-    // Email de la personne actuellement connectée
-    final currentEmail = (currentLoginEmail ?? '').toLowerCase();
 
     // 🚫 Interdire de réserver son propre trajet par email
     final driverEmail = (trip.driverEmail ?? '').toLowerCase();
@@ -45,31 +44,42 @@ class ReservationService {
       );
     }
 
-    // 2. Vérifier si une réservation existe déjà pour cet utilisateur (par id)
-    final existing = await supabase
-        .from('reservations')
-        .select('id')
-        .eq('trajet_id', trajetId)
-        .eq('passager_id', user.id);
+    // 2) Empêcher double réservation
+    // IMPORTANT : ne pas vérifier uniquement passager_id car l'id anonyme peut changer
+    // si la personne se reconnecte → elle pourrait réserver 2 fois avec le même email.
+    dynamic existingRes;
+    if (currentEmail.isNotEmpty) {
+      existingRes = await supabase
+          .from('reservations')
+          .select('id')
+          .eq('trajet_id', trajetId)
+          .or('passager_id.eq.${user.id},passenger_email.eq.$currentEmail');
+    } else {
+      existingRes = await supabase
+          .from('reservations')
+          .select('id')
+          .eq('trajet_id', trajetId)
+          .eq('passager_id', user.id);
+    }
 
-    if ((existing as List).isNotEmpty) {
+    if ((existingRes as List).isNotEmpty) {
       throw Exception('Tu as déjà une réservation sur ce trajet.');
     }
 
-    // 3. Vérifier qu’il reste des places
+    // 3) Vérifier qu’il reste des places (en comptant les réservations)
     final res = await supabase
         .from('reservations')
         .select('id')
         .eq('trajet_id', trajetId);
+
     final nbReservations = (res as List).length;
 
     if (nbReservations >= trip.nbPlaces) {
       throw Exception('Plus de places disponibles sur ce trajet.');
     }
 
-    // 4. Récupérer les infos de contact du passager via app_users (par email)
-    String? passengerEmail =
-        currentEmail.isEmpty ? null : currentEmail; // email de login
+    // 4) Récupérer les infos de contact du passager via app_users (par email)
+    String? passengerEmail = currentEmail.isEmpty ? null : currentEmail;
     String? prenom;
     String? nom;
     String? telephone;
@@ -80,12 +90,8 @@ class ReservationService {
           .select('email, prenom, nom, telephone')
           .eq('email', passengerEmail);
 
-      Map<String, dynamic>? userInfo;
       if (rows is List && rows.isNotEmpty) {
-        userInfo = rows.first as Map<String, dynamic>;
-      }
-
-      if (userInfo != null) {
+        final userInfo = rows.first as Map<String, dynamic>;
         passengerEmail = (userInfo['email'] as String?) ?? passengerEmail;
         prenom = userInfo['prenom'] as String?;
         nom = userInfo['nom'] as String?;
@@ -93,11 +99,11 @@ class ReservationService {
       }
     }
 
-    // 5. Insérer la réservation avec les coordonnées du passager
+    // 5) Insérer la réservation
     await supabase.from('reservations').insert({
       'trajet_id': trajetId,
       'passager_id': user.id, // historique
-      'passenger_email': passengerEmail,
+      'passenger_email': passengerEmail, // IMPORTANT pour bloquer doublon par email
       'passenger_prenom': prenom,
       'passenger_nom': nom,
       'passenger_telephone': telephone,
@@ -105,14 +111,12 @@ class ReservationService {
   }
 
   /// Trajets disponibles pour un passager
-  /// => on enlève en DART les trajets dont l'email conducteur = mon email
   Future<List<Trip>> getAvailableTrips() async {
     final currentEmail = (currentLoginEmail ?? '').toLowerCase();
 
     final response = await supabase
         .from('trajets')
         .select()
-        // on garde seulement les trajets encore "actifs"
         .neq('statut', 'termine')
         .neq('statut', 'annule')
         .order('heure_depart', ascending: true);
@@ -121,12 +125,10 @@ class ReservationService {
         .map((e) => Trip.fromMap(e as Map<String, dynamic>))
         .toList();
 
-    // Si on n’a pas d’email (cas bizarre), on renvoie tout
     if (currentEmail.isEmpty) {
       return allTrips;
     }
 
-    // Sinon, on enlève les trajets dont je suis le conducteur
     final filtered = allTrips.where((trip) {
       final driverEmail = (trip.driverEmail ?? '').toLowerCase();
       return driverEmail != currentEmail;
@@ -155,14 +157,12 @@ class ReservationService {
   }
 
   /// Liste des passagers d'un trajet (pour le conducteur)
-  Future<List<Map<String, dynamic>>> getPassengersForTrip(
-      String trajetId) async {
+  Future<List<Map<String, dynamic>>> getPassengersForTrip(String trajetId) async {
     final currentEmail = (currentLoginEmail ?? '').toLowerCase();
     if (currentEmail.isEmpty) {
       throw Exception('Email utilisateur inconnu (reconnecte-toi).');
     }
 
-    // Vérifier que je suis bien le conducteur de ce trajet
     final tripRow = await supabase
         .from('trajets')
         .select()
@@ -184,10 +184,26 @@ class ReservationService {
         .eq('trajet_id', trajetId)
         .order('created_at', ascending: true);
 
-    final list =
-        (res as List).map((e) => e as Map<String, dynamic>).toList();
-
+    final list = (res as List).map((e) => e as Map<String, dynamic>).toList();
     return list;
+  }
+
+  /// ✅ NOUVEAU : Compter les réservations par trajet (pour calculer les places restantes côté UI)
+  Future<Map<String, int>> getReservationCountsForTrips(List<String> trajetIds) async {
+    if (trajetIds.isEmpty) return {};
+
+    final res = await supabase
+        .from('reservations')
+        .select('trajet_id')
+        .inFilter('trajet_id', trajetIds);
+
+    final counts = <String, int>{};
+    for (final row in (res as List)) {
+      final id = (row as Map<String, dynamic>)['trajet_id']?.toString();
+      if (id == null) continue;
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    return counts;
   }
 }
 
