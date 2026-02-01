@@ -147,7 +147,6 @@ class _ParkingStatusPageState extends State<ParkingStatusPage> {
 
     final double ratio = total <= 0 ? 0 : (dispo / total).clamp(0.0, 1.0);
 
-    // couleur d’état (simple et lisible)
     final Color statusColor = ratio >= 0.5
         ? _green
         : (ratio >= 0.2 ? _primary : Colors.red);
@@ -168,182 +167,153 @@ class _ParkingStatusPageState extends State<ParkingStatusPage> {
         iconTheme: const IconThemeData(color: _text),
       ),
       body: SafeArea(
-        child: Stack(
-          children: [
-            // Décor voitures bas (si l’asset existe)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.95,
-                  child: Image.asset(
-                    'assets/images/cars_border.png',
-                    fit: BoxFit.cover,
-                    height: 70,
-                    errorBuilder: (_, __, ___) => const SizedBox(height: 70),
-                  ),
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Header
+              _card(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _primarySoft,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: _primary, width: 1.5),
+                          ),
+                          child: const Text(
+                            'PARKING',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.1,
+                              color: _text,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.local_parking,
+                            color: statusColor.withOpacity(0.9)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      p.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: _text,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Tire vers le bas pour rafraîchir.',
+                      style: TextStyle(
+                        color: _text.withOpacity(0.75),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _chip(
+                          icon: Icons.event_available,
+                          text: '$dispo disponibles',
+                        ),
+                        _chip(
+                          icon: Icons.format_list_numbered,
+                          text: '$total au total',
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ),
 
-            RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  // Header
-                  _card(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+              const SizedBox(height: 12),
+
+              // Stats + jauge
+              _card(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Disponibilité',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: _text,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: ratio,
+                        minHeight: 12,
+                        backgroundColor: _primarySoft.withOpacity(0.55),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(statusColor),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _primarySoft,
-                                borderRadius: BorderRadius.circular(999),
-                                border:
-                                    Border.all(color: _primary, width: 1.5),
-                              ),
-                              child: const Text(
-                                'PARKING',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1.1,
-                                  color: _text,
-                                ),
-                              ),
-                            ),
-                            const Spacer(),
-                            Icon(Icons.local_parking,
-                                color: statusColor.withOpacity(0.9)),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
                         Text(
-                          p.name,
+                          'Places disponibles',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: _text.withOpacity(0.8),
+                          ),
+                        ),
+                        Text(
+                          '$dispo / $total',
                           style: const TextStyle(
-                            fontSize: 20,
                             fontWeight: FontWeight.w900,
                             color: _text,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Tire vers le bas pour rafraîchir.',
-                          style: TextStyle(
-                            color: _text.withOpacity(0.75),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _chip(
-                              icon: Icons.event_available,
-                              text: '$dispo disponibles',
-                            ),
-                            _chip(
-                              icon: Icons.format_list_numbered,
-                              text: '$total au total',
-                            ),
-                          ],
-                        ),
                       ],
                     ),
-                  ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  // Stats + jauge
-                  _card(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text(
-                          'Disponibilité',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: _text,
-                          ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: statusColor.withOpacity(0.25)),
+                      ),
+                      child: Text(
+                        ratio >= 0.5
+                            ? 'Parking plutôt OK ✅'
+                            : (ratio >= 0.2
+                                ? 'Parking qui se remplit ⚠️'
+                                : 'Parking presque plein 🚫'),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: _text.withOpacity(0.85),
                         ),
-                        const SizedBox(height: 10),
-
-                        // Jauge
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            value: ratio,
-                            minHeight: 12,
-                            backgroundColor: _primarySoft.withOpacity(0.55),
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(statusColor),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Places disponibles',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: _text.withOpacity(0.8),
-                              ),
-                            ),
-                            Text(
-                              '$dispo / $total',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: _text,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Petit message d'état
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.10),
-                            borderRadius: BorderRadius.circular(16),
-                            border:
-                                Border.all(color: statusColor.withOpacity(0.25)),
-                          ),
-                          child: Text(
-                            ratio >= 0.5
-                                ? 'Parking plutôt OK ✅'
-                                : (ratio >= 0.2
-                                    ? 'Parking qui se remplit ⚠️'
-                                    : 'Parking presque plein 🚫'),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: _text.withOpacity(0.85),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-
-                  // espace pour le décor bas
-                  const SizedBox(height: 70),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

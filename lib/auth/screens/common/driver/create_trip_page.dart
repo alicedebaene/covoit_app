@@ -22,15 +22,16 @@ class _CreateTripPageState extends State<CreateTripPage> {
 
   /// Lieux possibles
   static const _campus = 'Campus';
-  static const _parking = 'Parking CMA';
+  static const _parking = 'Parking friche';
   static const _camping = 'Camping';
 
   /// URLs Google Maps associées
-  static const Map<String, String> _gpsUrls = {
-    _parking: 'https://maps.app.goo.gl/fWSvYDKn4Xv2xkU67?g_st=ipc', // Parking CMA
-    _campus: 'https://maps.app.goo.gl/nKrGxmG7KHbmvewy5?g_st=ipc', // Campus
-    _camping: 'https://maps.app.goo.gl/UCYuXx5zeEuNR2Rq6?g_st=ipc', // Camping
-  };
+static const Map<String, String> _gpsUrls = {
+  _parking: 'https://www.google.com/maps/search/?api=1&query=49.447948,2.101574',
+  _campus:  'https://www.google.com/maps/search/?api=1&query=UniLaSalle+Beauvais',
+  _camping: 'https://www.google.com/maps/search/?api=1&query=Camping+des+Ovalies+Beauvais',
+};
+
 
   /// Valeurs choisies dans les menus
   String _depart = _campus;
